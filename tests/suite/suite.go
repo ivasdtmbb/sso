@@ -3,12 +3,13 @@ package suite
 import (
 	"context"
 	"net"
+	"os"
 	"strconv"
 	"testing"
 
-	"sso/internal/config"
+	"grpc-service-ref/internal/config"
 
-	ssov1 "github.com/ivasdtmbb/protos/gen/go/sso"
+	ssov1 "github.com/JustSkiv/protos/gen/go/sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -23,14 +24,14 @@ const (
 	grpcHost = "localhost"
 )
 
-// New creates new test suite
+// New creates new test suite.
 //
-// TODO: form pipeline tests we neet to wait for app is ready
+// TODO: for pipeline tests we need to wait for app is ready
 func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()
 	t.Parallel()
 
-	cfg := config.MustLoadByPath("../config/local.yaml")
+	cfg := config.MustLoadPath(configPath())
 
 	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPC.Timeout)
 
@@ -41,7 +42,7 @@ func New(t *testing.T) (context.Context, *Suite) {
 
 	cc, err := grpc.DialContext(context.Background(),
 		grpcAddress(cfg),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
+		grpc.WithTransportCredentials(insecure.NewCredentials())) // Используем insecure-коннект для тестов
 	if err != nil {
 		t.Fatalf("grpc server connection failed: %v", err)
 	}
@@ -51,6 +52,16 @@ func New(t *testing.T) (context.Context, *Suite) {
 		Cfg:        cfg,
 		AuthClient: ssov1.NewAuthClient(cc),
 	}
+}
+
+func configPath() string {
+	const key = "CONFIG_PATH"
+
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+
+	return "../config/local_tests.yaml"
 }
 
 func grpcAddress(cfg *config.Config) string {

@@ -1,17 +1,14 @@
-// Entry point to our (app)
-// go run ./cmd/migrator/main.go --storage-path=./storage/sso.db --migrations-path=./tests/migrations --migrations-table=migrations_test
-// go run cmd/sso/main.go --config=./config/local.yaml
-
 package main
 
 import (
 	"log/slog"
 	"os"
-	"syscall"
 	"os/signal"
+	"syscall"
 
-	"sso/internal/config"
-	"sso/internal/app"
+	"grpc-service-ref/internal/app"
+	"grpc-service-ref/internal/config"
+	"grpc-service-ref/internal/lib/logger/handlers/slogpretty"
 )
 
 const (
@@ -21,44 +18,33 @@ const (
 )
 
 func main() {
-	//---------------initialize config object----------------//
 	cfg := config.MustLoad()
 
-	//---------------initialize logger-----------------------//
 	log := setupLogger(cfg.Env)
 
-	log.Info("starting application",
-		slog.Any("cfg", cfg),
-	)
-
-	//---------------initialize an application (app)---------//
 	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
 
-	//---------------run gRPC-server (app)-------------------//
-	go application.GRPCSrv.MustRun()
+	go func() {
+		application.GRPCServer.MustRun()
+	}()
 
-	//---------------Graceful shutdown-----------------------//
+	// Graceful shutdown
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	stopsignal := <-stop
+	<-stop
 
-	log.Info("stopping application", slog.String("signal", stopsignal.String()))
-	
-	application.GRPCSrv.Stop()
-	
-	log.Info("application stopped")
+	application.GRPCServer.Stop()
+	log.Info("Gracefully stopped")
 }
 
-// Logger initialization
 func setupLogger(env string) *slog.Logger {
 	var log *slog.Logger
 
 	switch env {
 	case envLocal:
-		log = slog.New(
-			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		)
+		log = setupPrettySlog()
 	case envDev:
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
@@ -68,6 +54,18 @@ func setupLogger(env string) *slog.Logger {
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 		)
 	}
-	
+
 	return log
+}
+
+func setupPrettySlog() *slog.Logger {
+	opts := slogpretty.PrettyHandlerOptions{
+		SlogOpts: &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		},
+	}
+
+	handler := opts.NewPrettyHandler(os.Stdout)
+
+	return slog.New(handler)
 }

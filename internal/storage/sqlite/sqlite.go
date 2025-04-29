@@ -5,23 +5,20 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"sso/internal/domain/models"
-	"sso/internal/storage"
 
+	"grpc-service-ref/internal/domain/models"
+	"grpc-service-ref/internal/storage"
 
 	"github.com/mattn/go-sqlite3"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Storage struct {
 	db *sql.DB
 }
 
-// New creates a new instance of the SQLite storage
 func New(storagePath string) (*Storage, error) {
 	const op = "storage.sqlite.New"
 
-	// Path to DB file
 	db, err := sql.Open("sqlite3", storagePath)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -30,7 +27,11 @@ func New(storagePath string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-// SaveUser saves user to db
+func (s *Storage) Stop() error {
+	return s.db.Close()
+}
+
+// SaveUser saves user to db.
 func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (int64, error) {
 	const op = "storage.sqlite.SaveUser"
 
@@ -43,7 +44,7 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	if err != nil {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-			return 0, fmt.Errorf("%s: %w", op, storage.ErrUserExists)	
+			return 0, fmt.Errorf("%s: %w", op, storage.ErrUserExists)
 		}
 
 		return 0, fmt.Errorf("%s: %w", op, err)
@@ -57,7 +58,7 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	return id, nil
 }
 
-// User returns user by email
+// User returns user by email.
 func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
 	const op = "storage.sqlite.User"
 
@@ -81,7 +82,23 @@ func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
 	return user, nil
 }
 
-// App returns app by id
+//func (s *Storage) SavePermission(ctx context.Context, userID int64, permission models.Permission, appID string) error {
+//	const op = "storage.sqlite.SavePermission"
+//
+//	stmt, err := s.db.Prepare("INSERT INTO permissions(user_id, permission, app_id) VALUES(?, ?, ?)")
+//	if err != nil {
+//		return fmt.Errorf("%s: %w", op, err)
+//	}
+//
+//	_, err = stmt.ExecContext(ctx, userID, permission, appID)
+//	if err != nil {
+//		return fmt.Errorf("%s: %w", op, err)
+//	}
+//
+//	return nil
+//}
+
+// App returns app by id.
 func (s *Storage) App(ctx context.Context, id int) (models.App, error) {
 	const op = "storage.sqlite.App"
 
@@ -125,6 +142,6 @@ func (s *Storage) IsAdmin(ctx context.Context, userID int64) (bool, error) {
 
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
-	
-	return isAdmin, nil		
+
+	return isAdmin, nil
 }

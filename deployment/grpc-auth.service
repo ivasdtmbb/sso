@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/root/apps/sso-auth
-ExecStart=/root/apps/sso-auth/grpc-auth --config=/root/apps/sso-auth/config/prod.yaml
+WorkingDirectory=/root/apps/grpc-auth
+ExecStart=/root/apps/grpc-auth/grpc-auth --config=/root/apps/grpc-auth/config/prod.yaml
 Restart=always
 RestartSec=4
 StandardOutput=inherit

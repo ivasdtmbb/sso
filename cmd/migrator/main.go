@@ -5,11 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	// Библиотека для миграций
 	"github.com/golang-migrate/migrate/v4"
-	// Драйвер для выполнения миграций SQLite 3
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite3"
-	// Драйвер для получения миграций из файлов
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
@@ -49,6 +46,7 @@ func main() {
 	fmt.Println("migrations applied")
 }
 
+// Log represents the logger
 type Log struct {
 	verbose bool
 }
