@@ -1,4 +1,5 @@
 // Entry point to our (app)
+// go run ./cmd/migrator/main.go --storage-path=./storage/sso.db --migrations-path=./tests/migrations --migrations-table=migrations_test
 // go run cmd/sso/main.go --config=./config/local.yaml
 
 package main

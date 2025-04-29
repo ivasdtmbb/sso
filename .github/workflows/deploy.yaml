@@ -1,0 +1,7 @@
+name: Deploy Auth App
+
+on:
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Tag'
